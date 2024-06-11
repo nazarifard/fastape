@@ -1,4 +1,4 @@
-package tape
+package fastape
 
 type MapTape[K comparable, V any, KT Tape[K], VT Tape[V]] struct {
 	lenTape LenTape

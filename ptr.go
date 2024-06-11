@@ -1,4 +1,4 @@
-package tape
+package fastape
 
 type PtrTape[V any, VT Tape[V]] struct {
 	vt VT

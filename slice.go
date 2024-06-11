@@ -1,4 +1,4 @@
-package tape
+package fastape
 
 type SliceTape[V any, VT Tape[V]] struct {
 	len LenTape

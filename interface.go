@@ -1,4 +1,4 @@
-package tape
+package fastape
 
 type Marshaler[V any] interface {
 	Marshal(v V, bs []byte) (n int, err error)

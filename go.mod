@@ -1,4 +1,4 @@
-module github.com/nazarifard/tape
+module github.com/nazarifard/fastape
 
 go 1.22.4
 

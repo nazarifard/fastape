@@ -1,9 +1,9 @@
 
-# Tape
+# Fastape
 Fastape means fast tape. It provides an ultra fast simple data serializer Go module.
-Tape just copies data blocks to a byte array and vice versa. Particularly it will shine when size of block is fixed. In golang a data block that contains any combination of numbers, bool, byte and arrays is a fixed sized data block. instead other types including strings, pointers, maps, slices and timers have variable data size. Tape supports both types simply.
+Fastape just copies data blocks to a byte array and vice versa. Particularly it will shine when size of block is fixed. In golang a data block that contains any combination of numbers, bool, byte and arrays is a fixed sized data block. instead other types including strings, pointers, maps, slices and timers have variable data size. Fastape supports both types simply.
 
-Tape just uses golang "copy" api and doesn't use any other specific data serializer algorithms,less complexity means less errors.
+Fastape just uses golang "copy" api and doesn't use any other specific data serializer algorithms,less complexity means less errors.
 
 ## Features
 - Cross platform
@@ -16,7 +16,7 @@ Tape just uses golang "copy" api and doesn't use any other specific data seriali
 
 ## Installation
 ```
-go get github.com/nazarifard/tape
+go get github.com/nazarifard/fastape
 ```
 
 ## Benchmark
@@ -24,7 +24,7 @@ go get github.com/nazarifard/tape
 # go test -bench=. -benchmem 
 goos: linux
 goarch: amd64
-pkg: tape
+pkg: fastape
 cpu: Intel(R) Core(TM) i7-3537U CPU @ 2.00GHz
 BenchmarkEncodeFixedSizePreAllocate-4  723041300     1.471 ns/op           0 B/op          0 allocs/op
 BenchmarkEncodeFixedSize-4             851389168     1.453 ns/op           0 B/op          0 allocs/op
@@ -34,7 +34,7 @@ BenchmarkEncodeVarSize-4               8013882       146.5 ns/op           64 B/
 BenchmarkVarSizeDecode-4               24088782      43.47 ns/op           0 B/op          0 allocs/op
 ```
 ## goserbench 
-Based on [goserbench](https://github.com/alecthomas/go_serialization_benchmarks) results Enc,Mus-go and Tape are three winners by a small margin. The winner may be changed by different input data, in most cases Enc is winner yet. Howere input data isn`t random realy therefore it isn't a fair play. for example Benc simply converts int(Siblings) to uint16 or uses two bytes to store size of strings while string size is unlimitted in Golang. The following is one of result which shows the efficiency of these compared to fastjson.
+Based on [goserbench](https://github.com/alecthomas/go_serialization_benchmarks) results Enc,Mus-go and Fastape are three winners by a small margin. The winner may be changed by different input data, in most cases Enc is winner yet. Howere input data isn`t random realy therefore it isn't a fair play. for example Benc simply converts int(Siblings) to uint16 or uses two bytes to store size of strings while string size is unlimitted in Golang. The following is one of result which shows the efficiency of these compared to fastjson.
 ```sh
 goos: linux
 goarch: amd64
@@ -43,26 +43,26 @@ cpu: Intel(R) Core(TM) i7-3537U CPU @ 2.00GHz
 marshal/fastjson-4          591217   2287.0  ns/op   1360 B/op    7 allocs/op    133.7 B/serial
 marshal/benc/usafe-4       9664924    115.7  ns/op     64 B/op    1 allocs/op    51.00 B/serial
 marshal/mus/unsafe-4       9648376    122.7  ns/op     64 B/op    1 allocs/op    49.00 B/serial
-marshal/tape-4             7793353    153.1  ns/op     64 B/op    1 allocs/op    55.00 B/serial
+marshal/fastape-4             7793353    153.1  ns/op     64 B/op    1 allocs/op    55.00 B/serial
                                                                 
 unmarshal/fastjson-4        432190   2789.00 ns/op   1800 B/op   11 allocs/op
 unmarshal/benc/usafe-4    23514747     51.97 ns/op   0    B/op    0 allocs/op
 unmarshal/mus/unsafe-4    15785749     73.65 ns/op   0    B/op    0 allocs/op
-unmarshal/tape-4          16388287     72.01 ns/op   0    B/op    0 allocs/op
+unmarshal/fastape-4          16388287     72.01 ns/op   0    B/op    0 allocs/op
 ```
 
 
 
 ## Compression
-Tape just copies data without any compression, if it's needed it can be used in a next seperate stage after data serialization.
+Fastape just copies data without any compression, if it's needed it can be used in a next seperate stage after data serialization.
 ## Usage
-Tape has 6 basic tape and any new tape can be made based on these primitives elements:
+Fastape has 6 basic tape and any other new tape can be made based on combinations of these primitives elements:
 UnitTape, TimeTape, StringTape, PtrTape, MapTape, SliceTape
 
 examle:
 ```go
 package main
-import "github.com/nazarifard/tape"
+import "github.com/nazarifard/fastape"
 
 type Block struct {
 	bool
@@ -80,13 +80,13 @@ type Composite struct {
     //slice []Block
 }
 
-type BlockTape=tape.Unit[Block]
+type BlockTape=fastape.Unit[Block]
 type CompositeTape struct {
-    stringTape tape.StringTape
-    ptrTape tape.PtrTape[Block]
-    //timeTape tape.TimeTape
-    //map tape.MapTape[int,Block, Unit[int], BlockTape]
-    //Slice tape.Slice[Block]
+    stringTape fastape.StringTape
+    ptrTape fastape.PtrTape[Block]
+    //timeTape fastape.TimeTape
+    //map fastape.MapTape[int,Block, Unit[int], BlockTape]
+    //Slice fastape.Slice[Block]
 }
 func (t CompositeTape)Sizeof(c Composite) int {
     return t.stringTape.Sizeof() + 

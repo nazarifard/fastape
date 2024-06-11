@@ -1,4 +1,4 @@
-package tape
+package fastape
 
 import (
 	unsafe_mod "unsafe"
