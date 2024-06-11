@@ -1,6 +1,6 @@
 
 # Tape
-An ultra fast simple data serializer in Golang.
+Fastape means fast tape. It provides an ultra fast simple data serializer Go module.
 Tape just copies data blocks to a byte array and vice versa. Particularly it will shine when size of block is fixed. In golang a data block that contains any combination of numbers, bool, byte and arrays is a fixed sized data block. instead other types including strings, pointers, maps, slices and timers have variable data size. Tape supports both types simply.
 
 Tape just uses golang "copy" api and doesn't use any other specific data serializer algorithms,less complexity means less errors.
