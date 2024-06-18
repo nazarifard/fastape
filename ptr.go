@@ -4,7 +4,7 @@ type PtrTape[V any, VT Tape[V]] struct {
 	vt VT
 }
 
-func (t PtrTape[V, VT]) Marshal(pv *V, bs []byte) (n int, err error) {
+func (t PtrTape[V, VT]) Roll(pv *V, bs []byte) (n int, err error) {
 	if len(bs) == 0 {
 		return 0, ErrNoSpaceLeft
 	}
@@ -13,14 +13,14 @@ func (t PtrTape[V, VT]) Marshal(pv *V, bs []byte) (n int, err error) {
 		return 1, nil //OK
 	}
 	bs[0] = 1
-	n, err = t.vt.Marshal(*pv, bs[1:])
+	n, err = t.vt.Roll(*pv, bs[1:])
 	if err != nil {
 		return 0, err
 	}
 	return 1 + n, nil
 }
 
-func (t PtrTape[V, VT]) Unmarshal(bs []byte, ppv **V) (n int, err error) {
+func (t PtrTape[V, VT]) Unroll(bs []byte, ppv **V) (n int, err error) {
 	if ppv == nil {
 		return 0, ErrNilPtr
 	}
@@ -34,7 +34,7 @@ func (t PtrTape[V, VT]) Unmarshal(bs []byte, ppv **V) (n int, err error) {
 	}
 	var v V
 	*ppv = &v
-	n, err = t.vt.Unmarshal(bs[1:], *ppv)
+	n, err = t.vt.Unroll(bs[1:], *ppv)
 	if err != nil {
 		return 0, err
 	}

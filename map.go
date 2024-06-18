@@ -19,7 +19,7 @@ func (t MapTape[K, V, KT, VT]) Sizeof(pm map[K]V) int {
 	return n
 }
 
-func (mt MapTape[K, V, KT, VT]) Marshal(m map[K]V, bs []byte) (n int, err error) {
+func (mt MapTape[K, V, KT, VT]) Roll(m map[K]V, bs []byte) (n int, err error) {
 	if len(bs) == 0 {
 		return 0, ErrNoSpaceLeft
 	}
@@ -28,19 +28,19 @@ func (mt MapTape[K, V, KT, VT]) Marshal(m map[K]V, bs []byte) (n int, err error)
 		return 1, nil //OK
 	}
 
-	n, err = mt.lenTape.Marshal(len(m), bs)
+	n, err = mt.lenTape.Roll(len(m), bs)
 	if err != nil {
 		return 0, err
 	}
 
 	t := 0
 	for k, v := range m {
-		t, err = mt.kt.Marshal(k, bs[n:])
+		t, err = mt.kt.Roll(k, bs[n:])
 		if err != nil {
 			return 0, err
 		}
 		n += t
-		t, err = mt.vt.Marshal(v, bs[n:])
+		t, err = mt.vt.Roll(v, bs[n:])
 		if err != nil {
 			return 0, err
 		}
@@ -48,7 +48,7 @@ func (mt MapTape[K, V, KT, VT]) Marshal(m map[K]V, bs []byte) (n int, err error)
 	}
 	return n, err
 }
-func (mt MapTape[K, V, KT, VT]) Unmarshal(bs []byte, pm *map[K]V) (n int, err error) {
+func (mt MapTape[K, V, KT, VT]) Unroll(bs []byte, pm *map[K]V) (n int, err error) {
 	if pm == nil {
 		return 0, ErrNilPtr
 	}
@@ -62,7 +62,7 @@ func (mt MapTape[K, V, KT, VT]) Unmarshal(bs []byte, pm *map[K]V) (n int, err er
 
 	var k K
 	var size int
-	n, err = mt.lenTape.Unmarshal(bs, &size)
+	n, err = mt.lenTape.Unroll(bs, &size)
 	if err != nil {
 		return 0, err
 	}
@@ -74,14 +74,14 @@ func (mt MapTape[K, V, KT, VT]) Unmarshal(bs []byte, pm *map[K]V) (n int, err er
 		*pm = make(map[K]V)
 	}
 	for i := 0; i < size; i++ {
-		t, err := mt.kt.Unmarshal(bs[n:], &k)
+		t, err := mt.kt.Unroll(bs[n:], &k)
 		if err != nil {
 			return 0, err
 		}
 		n += t
 
 		var v V
-		t, err = mt.vt.Unmarshal(bs[n:], &v)
+		t, err = mt.vt.Unroll(bs[n:], &v)
 		if err != nil {
 			return 0, err
 		}

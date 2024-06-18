@@ -18,7 +18,7 @@ func (t SliceTape[V, VT]) Sizeof(s []V) int {
 	return n
 }
 
-func (t SliceTape[V, VT]) Marshal(s []V, bs []byte) (n int, err error) {
+func (t SliceTape[V, VT]) Roll(s []V, bs []byte) (n int, err error) {
 	if len(bs) == 0 {
 		return 0, ErrNoSpaceLeft
 	}
@@ -27,14 +27,14 @@ func (t SliceTape[V, VT]) Marshal(s []V, bs []byte) (n int, err error) {
 		return 1, nil //OK
 	}
 	sLen := len(s)
-	n, err = t.len.Marshal(sLen, bs)
+	n, err = t.len.Roll(sLen, bs)
 	if err != nil {
 		return 0, err
 	}
 	var vt VT
 	var k int
 	for i := 0; i < sLen; i++ {
-		k, err = vt.Marshal(s[i], bs[n:])
+		k, err = vt.Roll(s[i], bs[n:])
 		if err != nil {
 			return 0, err
 		}
@@ -43,7 +43,7 @@ func (t SliceTape[V, VT]) Marshal(s []V, bs []byte) (n int, err error) {
 	return
 }
 
-func (t SliceTape[V, VT]) Unmarshal(bs []byte, ps *[]V) (n int, err error) {
+func (t SliceTape[V, VT]) Unroll(bs []byte, ps *[]V) (n int, err error) {
 	if ps == nil {
 		return 0, ErrNilPtr
 	}
@@ -56,7 +56,7 @@ func (t SliceTape[V, VT]) Unmarshal(bs []byte, ps *[]V) (n int, err error) {
 	}
 
 	var sLen int
-	n, err = t.len.Unmarshal(bs, &sLen)
+	n, err = t.len.Unroll(bs, &sLen)
 	if err != nil {
 		return 0, err
 	}
@@ -68,7 +68,7 @@ func (t SliceTape[V, VT]) Unmarshal(bs []byte, ps *[]V) (n int, err error) {
 	var mv VT
 	var k int
 	for i := 0; i < len(*ps); i++ {
-		k, err = mv.Unmarshal(bs[n:], &(*ps)[i])
+		k, err = mv.Unroll(bs[n:], &(*ps)[i])
 		if err != nil {
 			return 0, err
 		}

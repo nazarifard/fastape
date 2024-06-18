@@ -13,7 +13,7 @@ func (t StringTape) Sizeof(s string) int {
 	strLen := len(s)
 	return t.len.Sizeof(strLen) + strLen //8
 }
-func (t StringTape) Marshal(s string, bs []byte) (n int, err error) {
+func (t StringTape) Roll(s string, bs []byte) (n int, err error) {
 	if len(bs) == 0 {
 		return 0, ErrNoSpaceLeft
 	}
@@ -22,7 +22,7 @@ func (t StringTape) Marshal(s string, bs []byte) (n int, err error) {
 		return 1, nil //OK
 	}
 	strLen := len(s)
-	n, err = t.len.Marshal(strLen, bs)
+	n, err = t.len.Roll(strLen, bs)
 	if err != nil {
 		return 0, err
 	}
@@ -30,7 +30,7 @@ func (t StringTape) Marshal(s string, bs []byte) (n int, err error) {
 	return n, err
 }
 
-func (t StringTape) Unmarshal(bs []byte, ps *string) (n int, err error) {
+func (t StringTape) Unroll(bs []byte, ps *string) (n int, err error) {
 	if ps == nil {
 		return 0, ErrNilPtr
 	}
@@ -40,7 +40,7 @@ func (t StringTape) Unmarshal(bs []byte, ps *string) (n int, err error) {
 	}
 
 	var strLen int
-	n, err = t.len.Unmarshal(bs, &strLen)
+	n, err = t.len.Unroll(bs, &strLen)
 	if err != nil {
 		return 0, err
 	}

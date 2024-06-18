@@ -12,7 +12,7 @@ func BenchmarkEncodeFixedSizePreAllocate(b *testing.B) {
 	var c BlockTape
 	var n int
 	for i := 0; i < b.N; i++ {
-		n, _ = c.Marshal(block, bs)
+		n, _ = c.Roll(block, bs)
 	}
 	if n != int(unsafe.Sizeof(block)) {
 		b.Errorf("BenchmarkEncodeFixedSizePreAllocate failed!")
@@ -22,21 +22,23 @@ func BenchmarkEncodeFixedSizePreAllocate(b *testing.B) {
 func BenchmarkEncodeFixedSize(b *testing.B) {
 	var c BlockTape
 	var n int
+	var bs []byte
 	for i := 0; i < b.N; i++ {
-		bs := make([]byte, unsafe.Sizeof(*(*Block)(nil)))
-		n, _ = c.Marshal(block, bs)
+		bs = make([]byte, unsafe.Sizeof(*(*Block)(nil)))
+		n, _ = c.Roll(block, bs)
 	}
 	if n != int(unsafe.Sizeof(block)) {
 		b.Errorf("BenchmarkEncodeFixedSize failed!")
 	}
+	_ = bs
 }
 func BenchmarkFixedSizeDecode(b *testing.B) {
 	var v Block
 	bs := make([]byte, unsafe.Sizeof(*(*Block)(nil)))
 	var c BlockTape
-	c.Marshal(block, bs)
+	c.Roll(block, bs)
 	for i := 0; i < b.N; i++ {
-		_, _ = c.Unmarshal(bs, &v)
+		_, _ = c.Unroll(bs, &v)
 	}
 	if v != block {
 		b.Errorf("BenchmarkFixedSizeDecode failed!")
@@ -47,7 +49,7 @@ func BenchmarkEncodeVarSizePreAllocate(b *testing.B) {
 	var c compositeTape
 	bs := make([]byte, c.Sizeof(compo))
 	for i := 0; i < b.N; i++ {
-		c.Marshal(compo, bs)
+		c.Roll(compo, bs)
 	}
 }
 
@@ -55,16 +57,17 @@ func BenchmarkEncodeVarSize(b *testing.B) {
 	var c compositeTape
 	for i := 0; i < b.N; i++ {
 		bs := make([]byte, c.Sizeof(compo))
-		c.Marshal(compo, bs)
+		n := c.Roll(compo, bs)
+		_ = n
 	}
 }
 func BenchmarkVarSizeDecode(b *testing.B) {
 	bs := make([]byte, 1000)
 	var c compositeTape
-	c.Marshal(compo, bs)
+	c.Roll(compo, bs)
 	var s Composite
 	for i := 0; i < b.N; i++ {
-		_, _ = c.Unmarshal(bs, &s)
+		_, _ = c.Unroll(bs, &s)
 		// if s.Siblings != sample.Siblings {
 		// 	panic("..............................")
 		// }
@@ -84,13 +87,13 @@ func TestChainBlockComposite(t *testing.T) {
 	var ct compositeTape
 
 	buff := make([]byte, 1000)
-	n, _ := bt.Marshal(block, buff)
-	_ = ct.Marshal(compo, buff[n:])
+	n, _ := bt.Roll(block, buff)
+	_ = ct.Roll(compo, buff[n:])
 
 	var newBlock Block
 	var newCompo Composite
-	n, _ = bt.Unmarshal(buff, &newBlock)
-	_, _ = ct.Unmarshal(buff[n:], &newCompo)
+	n, _ = bt.Unroll(buff, &newBlock)
+	_, _ = ct.Unroll(buff[n:], &newCompo)
 
 	if newBlock != block {
 		litter.Dump(block)

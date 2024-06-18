@@ -8,24 +8,18 @@ import (
 type UnitTape[V any] struct {
 }
 
-func (_ UnitTape[V]) Marshal(v V, bs []byte) (n int, err error) {
+func (_ UnitTape[V]) Roll(v V, bs []byte) (n int, err error) {
 	n = int(unsafe_mod.Sizeof(*(*V)(nil)))
 	if len(bs) < n {
 		return 0, ErrNoSpaceLeft
 	}
 
-	p := (*byte)(unsafe_mod.Pointer(&v))
-
-	if n == 1 {
-		bs[0] = *p
-		return 1, nil //t 1 byte
-	}
-
-	n = copy(bs, unsafe_mod.Slice(p, n))
+	p := (*V)(unsafe_mod.Pointer(&bs[0]))
+	*p = v
 	return
 }
 
-func (_ UnitTape[V]) Unmarshal(bs []byte, pv *V) (n int, err error) {
+func (_ UnitTape[V]) Unroll(bs []byte, pv *V) (n int, err error) {
 	if pv == nil {
 		return 0, ErrNilPtr
 	}
@@ -34,14 +28,8 @@ func (_ UnitTape[V]) Unmarshal(bs []byte, pv *V) (n int, err error) {
 		return 0, ErrInvalidData
 	}
 
-	p := (*byte)(unsafe_mod.Pointer(pv))
-
-	if n == 1 {
-		*p = bs[0]
-		return 1, nil //t 1 byte
-	}
-
-	n = copy(unsafe_mod.Slice(p, n), bs)
+	p := (*V)(unsafe_mod.Pointer(&bs[0]))
+	*pv = *p
 	return
 }
 

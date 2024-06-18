@@ -41,81 +41,81 @@ func (t compositeTape) Sizeof(p Composite) int {
 		t.MoneyTape.Sizeof(p.Money)
 }
 
-func (t compositeTape) Marshal(a Composite, bs []byte) (n int) {
+func (t compositeTape) Roll(a Composite, bs []byte) (n int) {
 	k := 0
-	k, _ = t.NameTape.Marshal(a.Name, bs[n:])
+	k, _ = t.NameTape.Roll(a.Name, bs[n:])
 	n += k
-	k, _ = t.BirthDayTape.Marshal(a.BirthDay, bs[n:])
+	k, _ = t.BirthDayTape.Roll(a.BirthDay, bs[n:])
 	n += k
-	k, _ = t.PhoneTape.Marshal(a.Phone, bs[n:])
+	k, _ = t.PhoneTape.Roll(a.Phone, bs[n:])
 	n += k
-	k, _ = t.SiblingsTape.Marshal(a.Siblings, bs[n:])
+	k, _ = t.SiblingsTape.Roll(a.Siblings, bs[n:])
 	n += k
-	k, _ = t.SpouseTape.Marshal(a.Spouse, bs[n:])
+	k, _ = t.SpouseTape.Roll(a.Spouse, bs[n:])
 	n += k
-	k, _ = t.MoneyTape.Marshal(a.Money, bs[n:])
+	k, _ = t.MoneyTape.Roll(a.Money, bs[n:])
 	n += k
 
-	// k, _ = t.PtrTape.Marshal(a.Ptr, bs[n:])
+	// k, _ = t.PtrTape.Roll(a.Ptr, bs[n:])
 	// n += k
-	// k, _ = t.SliceTape.Marshal(a.Slice, bs[n:])
+	// k, _ = t.SliceTape.Roll(a.Slice, bs[n:])
 	// n += k
-	// k, _ = t.MapTape.Marshal(a.Map, bs[n:])
+	// k, _ = t.MapTape.Roll(a.Map, bs[n:])
 	// n += k
 	return
 }
 
-func (t compositeTape) Unmarshal(bs []byte, a *Composite) (n int, err error) {
+func (t compositeTape) Unroll(bs []byte, a *Composite) (n int, err error) {
 	var l int
-	l, err = t.NameTape.Unmarshal(bs[n:], &a.Name)
+	l, err = t.NameTape.Unroll(bs[n:], &a.Name)
 	n += l
 	if err != nil {
 		return 0, err
 	}
 
-	l, err = t.BirthDayTape.Unmarshal(bs[n:], &a.BirthDay)
+	l, err = t.BirthDayTape.Unroll(bs[n:], &a.BirthDay)
 	n += l
 	if err != nil {
 		return 0, err
 	}
 
-	l, err = t.PhoneTape.Unmarshal(bs[n:], &a.Phone)
+	l, err = t.PhoneTape.Unroll(bs[n:], &a.Phone)
 	n += l
 	if err != nil {
 		return 0, err
 	}
 
-	l, err = t.SiblingsTape.Unmarshal(bs[n:], &a.Siblings)
+	l, err = t.SiblingsTape.Unroll(bs[n:], &a.Siblings)
 	n += l
 	if err != nil {
 		return 0, err
 	}
 
-	l, err = t.SpouseTape.Unmarshal(bs[n:], &a.Spouse)
+	l, err = t.SpouseTape.Unroll(bs[n:], &a.Spouse)
 	n += l
 	if err != nil {
 		return 0, err
 	}
 
-	l, err = t.MoneyTape.Unmarshal(bs[n:], &a.Money)
+	l, err = t.MoneyTape.Unroll(bs[n:], &a.Money)
 	n += l
 	if err != nil {
 		return 0, err
 	}
 
-	// l, err = t.PtrTape.Unmarshal(bs[n:], &a.Ptr)
+	// l, err = t.PtrTape.Unroll(bs[n:], &a.Ptr)
 	// n += l
 	// if err != nil {
 	// 	return 0, err
 	// }
 
-	// l, err = t.SliceTape.Unmarshal(bs[n:], &a.Slice)
+	// l, err = t.SliceTape.Unroll(bs[n:], &a.Slice)
 	// n += l
 	// if err != nil {
 	// 	return 0, err
 	// }
 
-	// l, err = t.MapTape.Unmarshal(bs[n:], &a.Map)
+	// l, err = t.MapTape.Unroll(bs[n:], &a.Map)
 	// n += l
 	// if err != nil {
 	// 	return 0, err
@@ -141,8 +141,8 @@ func TestComposite(t *testing.T) {
 	var compositeTape compositeTape
 	var newCompo Composite
 	buff := make([]byte, 1000)
-	_ = compositeTape.Marshal(compo, buff)
-	_, _ = compositeTape.Unmarshal(buff, &newCompo)
+	_ = compositeTape.Roll(compo, buff)
+	_, _ = compositeTape.Unroll(buff, &newCompo)
 	if newCompo.Name != compo.Name ||
 		newCompo.Money != compo.Money ||
 		newCompo.Phone != compo.Phone ||

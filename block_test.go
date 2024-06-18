@@ -29,10 +29,10 @@ var block = Block{
 func TestBlock(t *testing.T) {
 	var blockTape BlockTape
 	buff := make([]byte, 1000)
-	_, _ = blockTape.Marshal(block, buff)
+	_, _ = blockTape.Roll(block, buff)
 
 	var newBlock Block
-	_, _ = blockTape.Unmarshal(buff, &newBlock)
+	_, _ = blockTape.Unroll(buff, &newBlock)
 
 	if newBlock != block {
 		litter.Dump(block)
