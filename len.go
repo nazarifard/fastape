@@ -24,16 +24,15 @@ func (t *LenTape) Unroll(bs []byte, size *int) (n int, err error) {
 	if len(bs) < 1 {
 		return 0, ErrInvalidData
 	}
-	*size = int(bs[0] & 0x7F)
-	for n = 0; bs[n]&0x80 != 0; n++ {
-		*size <<= 7
-		*size |= int(bs[n] & 0x7F)
 
-		n++
-		if n > 9 || n >= len(bs) {
-			return 0, ErrInvalidData //error
-		}
+	for n = 0; n < len(bs) && bs[n]&0x80 != 0 && n < 9; n++ {
+		*size |= int(bs[n]&0x7F) << (n * 7)
 	}
+	if n >= 9 {
+		return 0, ErrInvalidData //error
+	}
+	*size |= int(bs[n]&0x7F) << (n * 7)
+
 	return n + 1, nil
 }
 
