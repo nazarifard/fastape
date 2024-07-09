@@ -1,9 +1,9 @@
 package fastape
 
-type Marshaler[V any] interface {
+type Roller[V any] interface {
 	Roll(v V, bs []byte) (n int, err error)
 }
-type Unmarshaler[V any] interface {
+type Unroller[V any] interface {
 	Unroll(bs []byte, p *V) (n int, err error)
 }
 type Sizeofer[V any] interface {
@@ -11,7 +11,7 @@ type Sizeofer[V any] interface {
 }
 
 type Tape[V any] interface {
-	Marshaler[V]
-	Unmarshaler[V]
+	Roller[V]
+	Unroller[V]
 	Sizeofer[V]
 }

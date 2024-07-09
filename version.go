@@ -1,3 +1,3 @@
 package fastape
 
-const Version = "v0.1"
+const Version = "v0.2"
