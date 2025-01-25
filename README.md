@@ -1,11 +1,12 @@
 
-# Fastape
+# Fastape 
 Fastape means fast tape. It provides an ultra fast simple data serializer Go module with minimum memory usage.
 Fastape just copies data blocks to a byte array and vice versa. Particularly it will shine when size of block is fixed. In golang a data block that contains any combination of numbers, bool, byte and arrays is a fixed sized data block. instead other types including strings, pointers, maps, slices and timers have variable data size. Fastape supports both types simply.
 
 Fastape focuses on maximum throughput and minimum memeory usage. It is specially designed to use in in-memory database, big cache and similar applications that need to serialize/deserialize huge amount of in-memory data. 
 
 ## Features
+- Auto Generate (*New)
 - Cross platform
 - ultra fast (first or one of bests based on goserbench benchmark)
 - bestest for fixed sized data blocks
@@ -16,7 +17,20 @@ Fastape focuses on maximum throughput and minimum memeory usage. It is specially
 
 ## Installation
 ```
-go get github.com/nazarifard/fastape
+$go install github.com/nazarifard/fastape
+```
+```go
+import "github.com/nazarifard/fastape"
+type MyString string
+type S []map[MyString]*time.Time
+//go:generate fastape S 
+var s1,s2 S
+//fill(s1)
+n:=STape.Sizeof(s1)
+bs=make([]byte, bs)
+STape.Roll(s1, bs)
+STape.UnRoll(bs, &s2)
+//compare(s1,s2)
 ```
 
 ## Benchmark
