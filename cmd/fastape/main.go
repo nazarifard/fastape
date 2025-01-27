@@ -4,30 +4,25 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
-	"regexp"
 	"strings"
 )
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: go run generate_tape.go <type_name>")
+		fmt.Println("Usage: fastape <typeName>\nexample: fastape int")
 		return
 	}
 
-	pkgName, err := extractPackageName(".")
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-		return
+	pkgName := os.Getenv("GOPACKAGE")
+	if pkgName == "" {
+		pkgName = "main"
 	}
-
-	fmt.Printf("Package name: %s\n", pkgName)
-
 	typeName := os.Args[1]
-	tempFileName := "__temp_tape_test.go"
+	tempFileName := "temp_tape_test.go"
 
 	// Generate temporary test file content
-	content := generateTempTest(pkgName, typeName)
+	requestedTapeFileName := strings.ToLower(typeName) + "_tape__gen.go"
+	content := generateTempTest(pkgName, typeName, requestedTapeFileName)
 
 	// Write to temporary test file
 	if err := os.WriteFile(tempFileName, []byte(content), 0644); err != nil {
@@ -36,64 +31,52 @@ func main() {
 	}
 
 	// Run the temporary test file
-	cmd := exec.Command("go", "test", "-tags=generate", ".")
-	cmd.Stdout = os.Stdout
+	devNull, err := os.OpenFile(os.DevNull, os.O_RDWR, 0)
+	if err != nil {
+		panic(err)
+	}
+	defer devNull.Close()
+
+	//mandatory command
+	//that will generate required output
+	cmd := exec.Command("go", "test", "-tags=generate", "-run=TapeGenCode", ".")
+	cmd.Stdout = devNull
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		fmt.Printf("Error running temp test file: %v\n", err)
 		return
 	}
+	defer os.Remove(tempFileName)
 
-	// Remove the temporary test file
-	if err := os.Remove(tempFileName); err != nil {
-		fmt.Printf("Error removing temp test file: %v\n", err)
-		return
-	}
+	// goimports
+	cmd = exec.Command("goimports", "-w", requestedTapeFileName)
+	cmd.Stdout = devNull
+	cmd.Stderr = devNull
+	cmd.Run()
+
+	//gofmt
+	cmd = exec.Command("gofmt", "-w", requestedTapeFileName)
+	cmd.Stdout = devNull
+	cmd.Stderr = devNull
+	cmd.Run()
 }
 
-func generateTempTest(pkgName, typeName string) string {
+func generateTempTest(pkgName, typeName, fileName string) string {
 	return fmt.Sprintf(`// +build generate
 
 package %s
 
 import (
+    "os"
     "testing"
     "github.com/nazarifard/fastape"
     "reflect"
 )
 
-func TestGenCode(t *testing.T) {
+func TestTapeGenCode(t *testing.T) {
     var v %s
-    fastape.GenCode(reflect.TypeOf(v))
+    code := fastape.GenCode("%s", reflect.TypeOf(v), "%s")
+	err := os.WriteFile("%s", []byte(code), 0666)
+	_ = err
 }
-`, pkgName, typeName)
-}
-
-func extractPackageName(dir string) (string, error) {
-	var pkgName string
-	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() && filepath.Ext(path) == ".go" && !strings.HasSuffix(path, "_test.go") {
-			content, err := os.ReadFile(path)
-			if err != nil {
-				return err
-			}
-			re := regexp.MustCompile(`(?m)^\s*package\s+(\w+)\s*$`)
-			matches := re.FindStringSubmatch(string(content))
-			if len(matches) > 1 {
-				pkgName = matches[1]
-				return filepath.SkipDir // Stop after finding the first package name
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return "", err
-	}
-	if pkgName == "" {
-		return "", fmt.Errorf("package name not found")
-	}
-	return pkgName, nil
+`, pkgName, typeName, pkgName, typeName+"Tape", fileName)
 }

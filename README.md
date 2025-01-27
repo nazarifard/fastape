@@ -1,19 +1,27 @@
-
-# Fastape 
-Fastape means fast tape. It provides an ultra fast simple data serializer Go module with minimum memory usage.
-Fastape just copies data blocks to a byte array and vice versa. Particularly it will shine when size of block is fixed. In golang a data block that contains any combination of numbers, bool, byte and arrays is a fixed sized data block. instead other types including strings, pointers, maps, slices and timers have variable data size. Fastape supports both types simply.
-
-Fastape focuses on maximum throughput and minimum memeory usage. It is specially designed to use in in-memory database, big cache and similar applications that need to serialize/deserialize huge amount of in-memory data. 
+# Fastape plug and plug ultra fast data serializer Go module
+Fastape means fast tape. It provides an ultra fast simple data serializer Go module with minimum memory usage. Fastape focuses on maximum throughput and minimum memeory usage. It is specially designed to use in in-memory database, big cache and similar applications that need to serialize/deserialize huge amount of in-memory data. 
 
 ## Features
 - Auto Generate (*New)
+- Sampel of supported data structure:
+  - []map[MyString][3]struct {*MyTime;int}
+- support any combination of complex data structure
+  . Alias Types
+  . Named Types
+  . map
+  . slice
+  . array
+  . pointer
+  . time
+  . string
+  . numbers
+  . bool
 - Cross platform
 - ultra fast (first or one of bests based on goserbench benchmark)
 - bestest for fixed sized data blocks
 - minimum data length overhead
 - supports long data size
-- supports all data types including basic types, pointers, arrays, maps, slices (except channels and functions)
-- easy to use with just 6 generic APIs
+- plug and play. everything will be generated automatically
 
 ## Installation
 ```
@@ -22,15 +30,16 @@ $go install github.com/nazarifard/fastape
 ```go
 import "github.com/nazarifard/fastape"
 type MyString string
-type S []map[MyString]*time.Time
-//go:generate fastape S 
-var s1,s2 S
-//fill(s1)
-n:=STape.Sizeof(s1)
-bs=make([]byte, bs)
-STape.Roll(s1, bs)
-STape.UnRoll(bs, &s2)
-//compare(s1,s2)
+type Info = []map[MyString][3]struct {*MyTime;int}
+
+//go:generate fastape Info
+var a,b Info
+var tape InfoTape
+n:=tape.Sizeof(a)
+bs=make([]byte, buff)
+tape.Roll(a, buff)
+tape.UnRoll(buff, b)
+//compare(a,b)
 ```
 
 ## Benchmark
