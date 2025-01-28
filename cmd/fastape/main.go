@@ -4,21 +4,28 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"regexp"
 	"strings"
 )
 
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: fastape <typeName>\nexample: fastape int")
-		return
+		os.Exit(-1)
 	}
+	var err error
 
 	pkgName := os.Getenv("GOPACKAGE")
 	if pkgName == "" {
-		pkgName = "main"
+		pkgName, err = grepPackageName()
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(-1)
+		}
 	}
 	typeName := os.Args[1]
-	tempFileName := "temp_tape_test.go"
+	tempFileName := "temp_tape__gen_test.go"
 
 	// Generate temporary test file content
 	requestedTapeFileName := strings.ToLower(typeName) + "_tape__gen.go"
@@ -39,7 +46,7 @@ func main() {
 
 	//mandatory command
 	//that will generate required output
-	cmd := exec.Command("go", "test", "-tags=generate", "-run=TapeGenCode", ".")
+	cmd := exec.Command("go", "test", "-run=TapeGenCode", ".")
 	cmd.Stdout = devNull
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -61,9 +68,7 @@ func main() {
 }
 
 func generateTempTest(pkgName, typeName, fileName string) string {
-	return fmt.Sprintf(`// +build generate
-
-package %s
+	return fmt.Sprintf(`package %s
 
 import (
     "os"
@@ -79,4 +84,40 @@ func TestTapeGenCode(t *testing.T) {
 	_ = err
 }
 `, pkgName, typeName, pkgName, typeName+"Tape", fileName)
+}
+
+// grepPackageName searches through *.go files in the current directory
+// and returns the first valid package name it finds.
+func grepPackageName() (string, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current directory: %v", err)
+	}
+
+	// Compile regexes for package declaration and comments/whitespace
+	packageRegex := regexp.MustCompile(`^\s*package\s+(\w+)`)
+	commentOrWhitespaceRegex := regexp.MustCompile(`^\s*(//.*)?$`)
+
+	files, err := filepath.Glob(filepath.Join(dir, "*.go"))
+	if err != nil {
+		return "", fmt.Errorf("failed to list .go files: %v", err)
+	}
+	for _, file := range files {
+		data, err := os.ReadFile(file)
+		if err != nil {
+			return "", fmt.Errorf("failed to read file %s: %v", file, err)
+		}
+		lines := strings.Split(string(data), "\n")
+		for _, line := range lines {
+			if commentOrWhitespaceRegex.MatchString(line) {
+				continue
+			}
+			matches := packageRegex.FindStringSubmatch(line)
+			if len(matches) > 1 {
+				return matches[1], nil
+			}
+			break
+		}
+	}
+	return "", fmt.Errorf("no valid package declaration found in current folder")
 }

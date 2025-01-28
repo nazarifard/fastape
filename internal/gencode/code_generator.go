@@ -24,6 +24,11 @@ func GenCode(pkgName string, t reflect.Type, tapeName string) string {
 	}
 	for kt := range generatedTypes {
 		pwd, _ := os.Getwd()
+		//skip current local package
+		if filepath.Base(pwd) == filepath.Base(kt.PkgPath()) {
+			continue
+		}
+
 		switch kt.PkgPath() {
 		case "", t.PkgPath(), pkgName, pwd, filepath.Base(pwd): //skip
 		default:
