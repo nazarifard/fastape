@@ -25,14 +25,22 @@ func main() {
 		}
 	}
 	typeName := os.Args[1]
-	tempFileName := "temp_tape__gen_test.go"
+	tempMainFile := "temp_main__gen_test.go"
+
+	requestedTapeFileName := strings.ToLower(typeName) + "_tape__gen"
+	revokedFileName := os.Getenv("GOFILE")
+	Len := len(revokedFileName)
+	if Len > 8 && string(revokedFileName[Len-8:]) == "_test.go" {
+		requestedTapeFileName += "_test.go"
+	} else {
+		requestedTapeFileName += ".go"
+	}
 
 	// Generate temporary test file content
-	requestedTapeFileName := strings.ToLower(typeName) + "_tape__gen.go"
 	content := generateTempTest(pkgName, typeName, requestedTapeFileName)
 
 	// Write to temporary test file
-	if err := os.WriteFile(tempFileName, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(tempMainFile, []byte(content), 0644); err != nil {
 		fmt.Printf("Error writing temp file: %v\n", err)
 		return
 	}
@@ -46,13 +54,20 @@ func main() {
 
 	//mandatory command
 	//that will generate required output
-	cmd := exec.Command("go", "test", "-run=TapeGenCode", ".")
+	cmd := exec.Command("go", "get", "github.com/nazarifard/fastape")
+	cmd.Stdout = devNull
+	cmd.Stderr = devNull
+	cmd.Run()
+
+	//mandatory command
+	//that will generate required output
+	cmd = exec.Command("go", "test", "-run=TapeGenCode", ".")
 	cmd.Stdout = devNull
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return
 	}
-	defer os.Remove(tempFileName)
+	defer os.Remove(tempMainFile)
 
 	// goimports
 	cmd = exec.Command("goimports", "-w", requestedTapeFileName)
@@ -68,11 +83,11 @@ func main() {
 }
 
 func generateTempTest(pkgName, typeName, fileName string) string {
-	return fmt.Sprintf(`package %s
-
+	return fmt.Sprintf(`
+package %s
 import (
     "os"
-    "testing"
+	"testing"
     "github.com/nazarifard/fastape"
     "reflect"
 )
