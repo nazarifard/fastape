@@ -87,7 +87,7 @@ func generateTempTest(pkgName, typeName, fileName string) string {
 package %s
 import (
     "os"
-	"testing"
+    "testing"
     "github.com/nazarifard/fastape"
     "reflect"
 )
@@ -95,8 +95,8 @@ import (
 func TestTapeGenCode(t *testing.T) {
     var v %s
     code := fastape.GenCode("%s", reflect.TypeOf(v), "%s")
-	err := os.WriteFile("%s", []byte(code), 0666)
-	_ = err
+    err := os.WriteFile("%s", []byte(code), 0666)
+    _ = err
 }
 `, pkgName, typeName, pkgName, typeName+"Tape", fileName)
 }

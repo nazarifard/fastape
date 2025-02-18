@@ -41,7 +41,7 @@ func GenCode(pkgName string, t reflect.Type, tapeName string) string {
 	code += "import \"github.com/nazarifard/fastape\"" + "\n"
 
 	//for unnamed type define alias name
-	if t.Name() == "" {
+	if t.Name() == "" || isFixedSize(t) {
 		code += "\n" + "type " + tapeName + " = " + tapeTypeStr
 	}
 
