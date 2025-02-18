@@ -47,17 +47,14 @@ func GenCode(pkgName string, t reflect.Type, tapeName string) string {
 
 	compile_check_func_code := `
 //check compileType error
-var _ = func() bool{
-   if false{
+var _ = func() {
 	 var tape %s
 	 var v %s
 	 _=tape.Sizeof(v)
 	 _,_=tape.Roll(v, nil)
 	 _,_=tape.Unroll(nil, &v)	
-	 return true
-    }
-	return false
-}()`
+}
+`
 	code += fmt.Sprintf(compile_check_func_code, tapeName, fmt.Sprint(t))
 	code = strings.Replace(code, pkgName+".", "", -1)
 
