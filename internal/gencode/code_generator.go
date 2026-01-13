@@ -19,14 +19,26 @@ func GenCode(pkgName string, t reflect.Type, tapeName string) string {
 	code := dontEditMaarker + "\n"
 
 	code += "package " + pkgName + "\n"
+	imports := make([]string, 0, len(generatedTypes)+3)
+	seen := make(map[string]struct{}, len(generatedTypes)+3)
+	addImport := func(path string) {
+		if path == "" {
+			return
+		}
+		if _, ok := seen[path]; ok {
+			return
+		}
+		seen[path] = struct{}{}
+		imports = append(imports, path)
+	}
 	if len(generated_array_map) > 0 {
-		code += "import \"errors\"\n"
+		addImport("errors")
 	}
 	if hasTime {
-		code += "import \"time\"\n"
+		addImport("time")
 	}
+	pwd, _ := os.Getwd()
 	for kt := range generatedTypes {
-		pwd, _ := os.Getwd()
 		//skip current local package
 		if filepath.Base(pwd) == filepath.Base(kt.PkgPath()) {
 			continue
@@ -35,10 +47,13 @@ func GenCode(pkgName string, t reflect.Type, tapeName string) string {
 		switch kt.PkgPath() {
 		case "", t.PkgPath(), pkgName, pwd, filepath.Base(pwd): //skip
 		default:
-			code += "import \"" + kt.PkgPath() + "\"\n"
+			addImport(kt.PkgPath())
 		}
 	}
-	code += "import \"github.com/nazarifard/fastape\"" + "\n"
+	addImport("github.com/nazarifard/fastape")
+	for _, path := range imports {
+		code += "import \"" + path + "\"\n"
+	}
 
 	//for unnamed type define alias name
 	if t.Name() == "" || isFixedSize(t) {
