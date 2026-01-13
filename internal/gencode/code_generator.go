@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
 )
 
@@ -51,6 +52,7 @@ func GenCode(pkgName string, t reflect.Type, tapeName string) string {
 		}
 	}
 	addImport("github.com/nazarifard/fastape")
+	sort.Strings(imports)
 	for _, path := range imports {
 		code += "import \"" + path + "\"\n"
 	}
