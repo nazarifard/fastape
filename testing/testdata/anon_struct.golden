@@ -2,7 +2,6 @@
 package basic
 
 import "github.com/nazarifard/fastape"
-import "time"
 
 type AnonStructTape = struct_0001Tape
 

@@ -32,3 +32,9 @@ Additional Goldens
   are produced by `internal/gencode.GenCodeFromFile` using fixture types in
   `testing/fixtures/basic`. These mirror the legacy reflect generator output
   (same quirks) but are generated without the CLI.
+
+Changelog
+- AST refresh: regenerated goldens using the AST generator; removed legacy quirks
+  (time import side effects, quoted struct tags, array newline formatting, named
+  array byte-size bugs, and package name stripping). Legacy outputs remain in git
+  history for comparison.

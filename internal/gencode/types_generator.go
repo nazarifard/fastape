@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"go/importer"
 	"go/types"
-	"runtime"
 	"sort"
-	"strconv"
 	"strings"
 )
 
@@ -18,17 +16,11 @@ type typeGenerator struct {
 	generatedArr  map[int]bool
 	structCounter int
 	needsErrors   bool
-	needsTime     bool
 	timeStruct    *types.Struct
-	sizes         types.Sizes
 	code          strings.Builder
 }
 
 func newTypeGenerator(pkg *types.Package, pkgName string) *typeGenerator {
-	sizes := types.SizesFor("gc", runtime.GOARCH)
-	if sizes == nil {
-		sizes = types.SizesFor("gc", "amd64")
-	}
 	return &typeGenerator{
 		pkg:          pkg,
 		pkgName:      pkgName,
@@ -36,7 +28,6 @@ func newTypeGenerator(pkg *types.Package, pkgName string) *typeGenerator {
 		generated:    make(map[types.Type]string),
 		generatedArr: make(map[int]bool),
 		timeStruct:   loadTimeStruct(),
-		sizes:        sizes,
 	}
 }
 
@@ -54,9 +45,6 @@ func (g *typeGenerator) Generate(t types.Type, tapeName, typeStrOverride string)
 	g.addImport("github.com/nazarifard/fastape")
 	if g.needsErrors {
 		g.addImport("errors")
-	}
-	if g.needsTime {
-		g.addImport("time")
 	}
 
 	imports := make([]string, 0, len(g.imports))
@@ -113,6 +101,15 @@ func (g *typeGenerator) typeString(t types.Type) string {
 	return types.TypeString(types.Unalias(t), g.qual)
 }
 
+func typeStringWithPkgName(t types.Type) string {
+	return types.TypeString(types.Unalias(t), func(p *types.Package) string {
+		if p == nil {
+			return ""
+		}
+		return p.Name()
+	})
+}
+
 func (g *typeGenerator) typeName(t types.Type) string {
 	if tt, ok := types.Unalias(t).(*types.Named); ok {
 		return tt.Obj().Name()
@@ -161,18 +158,15 @@ func (g *typeGenerator) isTimeType(t types.Type) bool {
 		return false
 	}
 	if g.timeStruct == nil {
-		g.needsTime = true
 		return false
 	}
 	if st.NumFields() != g.timeStruct.NumFields() {
-		g.needsTime = true
 		return false
 	}
 	for i := 0; i < st.NumFields(); i++ {
 		field := st.Field(i)
 		timeField := g.timeStruct.Field(i)
-		if field.Name() != timeField.Name() || g.compareTypeString(field.Type()) != g.compareTypeString(timeField.Type()) {
-			g.needsTime = true
+		if field.Name() != timeField.Name() || typeStringWithPkgName(field.Type()) != typeStringWithPkgName(timeField.Type()) {
 			return false
 		}
 	}
@@ -183,26 +177,19 @@ func (g *typeGenerator) underlyingTypeString(t types.Type) string {
 	under := types.Unalias(t).Underlying()
 	switch tt := under.(type) {
 	case *types.Pointer:
-		return "*" + g.stripCurrentPkg(g.typeStringWithPkg(tt.Elem()))
+		return "*" + g.typeString(tt.Elem())
 	case *types.Map:
-		return fmt.Sprintf("map[%s]%s", g.stripCurrentPkg(g.typeStringWithPkg(tt.Key())), g.stripCurrentPkg(g.typeStringWithPkg(tt.Elem())))
+		return fmt.Sprintf("map[%s]%s", g.typeString(tt.Key()), g.typeString(tt.Elem()))
 	case *types.Slice:
-		return "[]" + g.stripCurrentPkg(g.typeStringWithPkg(tt.Elem()))
+		return "[]" + g.typeString(tt.Elem())
 	case *types.Array:
-		size := int64(0)
-		if g.sizes != nil {
-			size = g.sizes.Sizeof(tt)
-		}
-		if size == 0 {
-			size = tt.Len()
-		}
-		return fmt.Sprintf("[%d]%s", size, g.stripCurrentPkg(g.typeStringWithPkg(tt.Elem())))
+		return fmt.Sprintf("[%d]%s", tt.Len(), g.typeString(tt.Elem()))
 	case *types.Struct:
 		var b strings.Builder
 		b.WriteString("struct {")
 		for i := 0; i < tt.NumFields(); i++ {
 			field := tt.Field(i)
-			b.WriteString(fmt.Sprintf("%s %s;", field.Name(), g.stripCurrentPkg(g.typeStringWithPkg(field.Type()))))
+			b.WriteString(fmt.Sprintf("%s %s;", field.Name(), g.typeString(field.Type())))
 		}
 		b.WriteString("}")
 		return b.String()
@@ -243,7 +230,7 @@ func (g *typeGenerator) tape(t types.Type) (result string, err error) {
 		return "fastape.TimeTape", nil
 	}
 
-	if name := g.typeName(t); name != "" && name != g.typeStringWithPkg(t) {
+	if name := g.typeName(t); name != "" {
 		underType = g.underlyingTypeString(t)
 	}
 
@@ -306,7 +293,7 @@ func (g *typeGenerator) tape(t types.Type) (result string, err error) {
 		if g.typeName(t) != "" {
 			arrayType = g.typeString(t)
 		}
-		return fmt.Sprintf("\nArray_%d[%s, %s, %s]", n, arrayType, g.typeString(tt.Elem()), elemTape), nil
+		return fmt.Sprintf("Array_%d[%s, %s, %s]", n, arrayType, g.typeString(tt.Elem()), elemTape), nil
 	case *types.Slice:
 		elemTape, tapeErr := g.tape(tt.Elem())
 		if tapeErr != nil {
@@ -354,26 +341,6 @@ func loadTimeStruct() *types.Struct {
 	return nil
 }
 
-func (g *typeGenerator) typeStringWithPkg(t types.Type) string {
-	return types.TypeString(types.Unalias(t), func(p *types.Package) string {
-		if p == nil {
-			return ""
-		}
-		return p.Name()
-	})
-}
-
-func (g *typeGenerator) compareTypeString(t types.Type) string {
-	return g.typeStringWithPkg(t)
-}
-
-func (g *typeGenerator) stripCurrentPkg(s string) string {
-	if g.pkgName == "" {
-		return s
-	}
-	return strings.ReplaceAll(s, g.pkgName+".", "")
-}
-
 func (g *typeGenerator) structTypeString(st *types.Struct) string {
 	if st.NumFields() == 0 {
 		return "struct {}"
@@ -381,7 +348,7 @@ func (g *typeGenerator) structTypeString(st *types.Struct) string {
 	fields := make([]string, 0, st.NumFields())
 	for i := 0; i < st.NumFields(); i++ {
 		field := st.Field(i)
-		fieldType := g.stripCurrentPkg(g.typeStringWithPkg(field.Type()))
+		fieldType := g.typeString(field.Type())
 		if field.Anonymous() {
 			fields = append(fields, fieldType+g.fieldTagSuffix(st.Tag(i)))
 			continue
@@ -395,7 +362,7 @@ func (g *typeGenerator) fieldTagSuffix(tag string) string {
 	if tag == "" {
 		return ""
 	}
-	return " " + strconv.Quote(tag)
+	return " `" + tag + "`"
 }
 
 func genArrayCode(n int) string {

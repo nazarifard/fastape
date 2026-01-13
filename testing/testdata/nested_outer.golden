@@ -167,6 +167,5 @@ type OuterTape struct {
 	aAlias   InnerTape
 	aKeys    fastape.SliceTape[inner.Key, fastape.NamedTape[inner.Key, string, fastape.StringTape]]
 	aLookup  fastape.MapTape[inner.Key, *inner.Inner, fastape.NamedTape[inner.Key, string, fastape.StringTape], fastape.PtrTape[inner.Inner, InnerTape]]
-	aItems
-	Array_2[[2]inner.Inner, inner.Inner, InnerTape]
+	aItems   Array_2[[2]inner.Inner, inner.Inner, InnerTape]
 }

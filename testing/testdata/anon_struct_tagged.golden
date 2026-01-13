@@ -2,7 +2,6 @@
 package basic
 
 import "github.com/nazarifard/fastape"
-import "time"
 
 type AnonStructTaggedTape = struct_0001Tape
 
@@ -20,7 +19,7 @@ var _ = func() {
 
 type struct_0001 = struct {
 	Embedded
-	Name string "json:\"name\""
+	Name string `json:"name"`
 }
 
 func (t struct_0001Tape) Sizeof(v struct_0001) int {

@@ -1,4 +1,5 @@
 __*.go
 *__gen.go
-
+cmd/fastape/fastape
+cmd/fastape/fastape.exe
 

@@ -92,7 +92,7 @@ func (array Array_2[A, V, VT]) Unroll(bs []byte, p *A) (n int, err error) {
 }
 
 type struct_0001 = struct {
-	Label string "json:\"label\""
+	Label string `json:"label"`
 }
 
 func (t struct_0001Tape) Sizeof(v struct_0001) int {
@@ -291,12 +291,10 @@ type EdgeTape struct {
 	aNamedMap   fastape.NamedTape[NamedMap, map[MyString]int, fastape.MapTape[MyString, int, fastape.NamedTape[MyString, string, fastape.StringTape], fastape.UnitTape[int]]]
 	aAliasPtr   fastape.PtrTape[inner, innerTape]
 	aNamedPtr   fastape.NamedTape[NamedPtr, *inner, fastape.PtrTape[inner, innerTape]]
-	aAliasArray
-	Array_2[[2]string, string, fastape.StringTape]
-	aNamedArray fastape.NamedTape[NamedArray, [32]string,
-		Array_2[NamedArray, string, fastape.StringTape]]
-	aWhen      fastape.NamedTape[time.Time, time.Time, fastape.TimeTape]
-	aWhenAlias fastape.NamedTape[MyTime, time.Time, fastape.TimeTape]
-	aInline    struct_0001Tape
-	aEmbedded  fastape.UnitTape[Embedded]
+	aAliasArray Array_2[[2]string, string, fastape.StringTape]
+	aNamedArray fastape.NamedTape[NamedArray, [2]string, Array_2[NamedArray, string, fastape.StringTape]]
+	aWhen       fastape.NamedTape[time.Time, time.Time, fastape.TimeTape]
+	aWhenAlias  fastape.NamedTape[MyTime, time.Time, fastape.TimeTape]
+	aInline     struct_0001Tape
+	aEmbedded   fastape.UnitTape[Embedded]
 }

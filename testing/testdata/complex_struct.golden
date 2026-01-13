@@ -3,7 +3,6 @@ package basic
 
 import "errors"
 import "github.com/nazarifard/fastape"
-import "time"
 
 // check compileType error
 var _ = func() {
@@ -154,6 +153,5 @@ type complexStructTape struct {
 	aPtr    fastape.PtrTape[inner, innerTape]
 	aTags   fastape.SliceTape[MyString, fastape.NamedTape[MyString, string, fastape.StringTape]]
 	aLookup fastape.MapTape[MyString, *inner, fastape.NamedTape[MyString, string, fastape.StringTape], fastape.PtrTape[inner, innerTape]]
-	aCodes
-	Array_2[[2]string, string, fastape.StringTape]
+	aCodes  Array_2[[2]string, string, fastape.StringTape]
 }

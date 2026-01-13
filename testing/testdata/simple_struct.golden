@@ -2,7 +2,6 @@
 package basic
 
 import "github.com/nazarifard/fastape"
-import "time"
 
 // check compileType error
 var _ = func() {
