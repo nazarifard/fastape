@@ -124,7 +124,7 @@ func generatePackageFiles(t *testing.T, fastapeRoot, dir, tags string) []string 
 func runFastape(t *testing.T, fastapeRoot, dir, tags string) {
 	t.Helper()
 
-	args := []string{"run", "./cmd/fastape"}
+	args := []string{"run", "./cmd/fastape", "-checks", "-tapable"}
 	if tags != "" {
 		args = append(args, "-tags", tags)
 	}

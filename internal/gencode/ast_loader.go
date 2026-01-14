@@ -12,7 +12,7 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-func GenCodeFromFile(filePath, typeName, tapeName string) (string, error) {
+func GenCodeFromFile(filePath, typeName, tapeName string, emitTapable, emitChecks bool, version string) (string, error) {
 	absPath, err := filepath.Abs(filePath)
 	if err != nil {
 		return "", fmt.Errorf("resolve file path: %w", err)
@@ -38,6 +38,7 @@ func GenCodeFromFile(filePath, typeName, tapeName string) (string, error) {
 	pkg := pkgs[0]
 
 	typeStrOverride := ""
+	emitTapeMethod := false
 	var targetType types.Type
 	obj := pkg.Types.Scope().Lookup(typeName)
 	if obj != nil {
@@ -46,6 +47,7 @@ func GenCodeFromFile(filePath, typeName, tapeName string) (string, error) {
 			return "", fmt.Errorf("%s is not a type in package %s", typeName, pkg.Name)
 		}
 		targetType = typeNameObj.Type()
+		emitTapeMethod = !typeNameObj.IsAlias()
 	} else {
 		pos := filePos(pkg, absPath)
 		tv, err := types.Eval(pkg.Fset, pkg.Types, pos, typeName)
@@ -59,11 +61,11 @@ func GenCodeFromFile(filePath, typeName, tapeName string) (string, error) {
 		typeStrOverride = typeName
 	}
 
-	gen := newTypeGenerator(pkg.Types, pkg.Name)
-	return gen.Generate(targetType, tapeName, typeStrOverride)
+	gen := newTypeGenerator(pkg.Types, pkg.Name, version, emitChecks)
+	return gen.Generate(targetType, tapeName, typeStrOverride, emitTapable && emitTapeMethod)
 }
 
-func GenCodeFromDir(dir, tags string) (map[string]string, error) {
+func GenCodeFromDir(dir, tags string, emitTapable, emitChecks bool, version string) (map[string]string, error) {
 	absDir, err := filepath.Abs(dir)
 	if err != nil {
 		return nil, fmt.Errorf("resolve dir: %w", err)
@@ -92,7 +94,7 @@ func GenCodeFromDir(dir, tags string) (map[string]string, error) {
 	}
 
 	outputs := make(map[string]string)
-	baseCode, err := generatePackageCode(basePkg, false)
+	baseCode, err := generatePackageCode(basePkg, false, emitTapable, emitChecks, version)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +103,7 @@ func GenCodeFromDir(dir, tags string) (map[string]string, error) {
 	}
 
 	if testPkg := selectTestPackage(pkgs, basePkg); testPkg != nil {
-		testCode, err := generatePackageCode(testPkg, true)
+		testCode, err := generatePackageCode(testPkg, true, emitTapable, emitChecks, version)
 		if err != nil {
 			return nil, err
 		}
@@ -159,11 +161,12 @@ func selectTestPackage(pkgs []*packages.Package, basePkg *packages.Package) *pac
 }
 
 type annotatedType struct {
-	name string
-	typ  types.Type
+	name            string
+	typ             types.Type
+	emitTapeMethod  bool
 }
 
-func generatePackageCode(pkg *packages.Package, wantTestFiles bool) (string, error) {
+func generatePackageCode(pkg *packages.Package, wantTestFiles bool, emitTapable, emitChecks bool, version string) (string, error) {
 	if pkg == nil || pkg.Types == nil {
 		return "", fmt.Errorf("package type info missing")
 	}
@@ -175,9 +178,9 @@ func generatePackageCode(pkg *packages.Package, wantTestFiles bool) (string, err
 		return "", nil
 	}
 
-	gen := newTypeGenerator(pkg.Types, pkg.Name)
+	gen := newTypeGenerator(pkg.Types, pkg.Name, version, emitChecks)
 	for _, target := range targets {
-		if err := gen.AddTarget(target.typ, target.name+"Tape", target.name); err != nil {
+		if err := gen.AddTarget(target.typ, target.name+"Tape", target.name, emitTapable && target.emitTapeMethod); err != nil {
 			return "", err
 		}
 	}
@@ -224,7 +227,11 @@ func collectAnnotatedTypes(pkg *packages.Package, wantTestFiles bool) ([]annotat
 					continue
 				}
 				seen[typeName.Name()] = struct{}{}
-				out = append(out, annotatedType{name: typeName.Name(), typ: typeName.Type()})
+				out = append(out, annotatedType{
+					name:           typeName.Name(),
+					typ:            typeName.Type(),
+					emitTapeMethod: !typeName.IsAlias(),
+				})
 			}
 		}
 	}

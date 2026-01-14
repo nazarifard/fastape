@@ -11,14 +11,14 @@ import (
 )
 
 func TestRoundTrip(t *testing.T) {
-	var tape RoundTripTape
-	runRoundTrip(t, tape, sampleRoundTrip())
-	runRoundTrip(t, tape, sampleRoundTripNil())
+	runRoundTrip(t, RoundTrip{}, sampleRoundTrip())
+	runRoundTrip(t, RoundTrip{}, sampleRoundTripNil())
 }
 
-func runRoundTrip(t *testing.T, tape fastape.Tape[RoundTrip], want RoundTrip) {
+func runRoundTrip(t *testing.T, tapable fastape.Tapable[RoundTrip], want RoundTrip) {
 	t.Helper()
 
+	tape := tapable.Tape()
 	buf1 := make([]byte, tape.Sizeof(want))
 	n1, err := tape.Roll(want, buf1)
 	if err != nil {
