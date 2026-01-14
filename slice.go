@@ -61,13 +61,15 @@ func (t SliceTape[V, VT]) Unroll(bs []byte, ps *[]V) (n int, err error) {
 		return 0, err
 	}
 
-	if *ps == nil || len(*ps) < sLen {
+	if *ps == nil || cap(*ps) < sLen {
 		*ps = make([]V, sLen)
+	} else {
+		*ps = (*ps)[:sLen]
 	}
 
 	var mv VT
 	var k int
-	for i := 0; i < len(*ps); i++ {
+	for i := 0; i < sLen; i++ {
 		k, err = mv.Unroll(bs[n:], &(*ps)[i])
 		if err != nil {
 			return 0, err

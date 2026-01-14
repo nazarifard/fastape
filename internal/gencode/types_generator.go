@@ -190,6 +190,7 @@ func (g *typeGenerator) isFixedSize(t types.Type) bool {
 		case types.Bool, types.Int, types.Int8, types.Int16, types.Int32, types.Int64,
 			types.Uint, types.Uint8, types.Uint16, types.Uint32, types.Uint64,
 			types.Float32, types.Float64:
+			// TODO: consider avoiding UnitTape for primitives and using a defined endianness instead (portable/stable file format option).
 			return true
 		default:
 			return false
@@ -197,6 +198,7 @@ func (g *typeGenerator) isFixedSize(t types.Type) bool {
 	case *types.Array:
 		return g.isFixedSize(tt.Elem())
 	case *types.Struct:
+		// TODO: fixed-size structs are currently serialized via UnitTape as raw memory; consider generating field-wise tapes for stability (endianness/padding portability).
 		for i := 0; i < tt.NumFields(); i++ {
 			if !g.isFixedSize(tt.Field(i).Type()) {
 				return false
