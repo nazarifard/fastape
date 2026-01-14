@@ -1,5 +1,8 @@
 __*.go
 *__gen.go
+fastape_gen.go
+fastape_gen_test.go
+!testing/fixtures/**/fastape_gen.go
+!testing/fixtures/**/fastape_gen_test.go
 cmd/fastape/fastape
 cmd/fastape/fastape.exe
-

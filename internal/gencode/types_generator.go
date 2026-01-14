@@ -14,10 +14,17 @@ type typeGenerator struct {
 	imports       map[string]struct{}
 	generated     map[types.Type]string
 	generatedArr  map[int]bool
+	targets       []genTarget
 	structCounter int
 	needsErrors   bool
 	timeStruct    *types.Struct
 	code          strings.Builder
+}
+
+type genTarget struct {
+	tapeName string
+	typeStr  string
+	tapeType string
 }
 
 func newTypeGenerator(pkg *types.Package, pkgName string) *typeGenerator {
@@ -32,16 +39,36 @@ func newTypeGenerator(pkg *types.Package, pkgName string) *typeGenerator {
 }
 
 func (g *typeGenerator) Generate(t types.Type, tapeName, typeStrOverride string) (string, error) {
-	t = types.Unalias(t)
-	tapeTypeStr, err := g.tape(t)
-	if err != nil {
-		return "", err
-	}
 	typeStr := typeStrOverride
 	if typeStr == "" {
 		typeStr = g.typeString(t)
 	}
+	tapeTypeStr, err := g.tape(types.Unalias(t))
+	if err != nil {
+		return "", err
+	}
+	g.targets = append(g.targets, genTarget{
+		tapeName: tapeName,
+		typeStr:  typeStr,
+		tapeType: tapeTypeStr,
+	})
+	return g.Render(), nil
+}
 
+func (g *typeGenerator) AddTarget(t types.Type, tapeName, typeStr string) error {
+	tapeTypeStr, err := g.tape(types.Unalias(t))
+	if err != nil {
+		return err
+	}
+	g.targets = append(g.targets, genTarget{
+		tapeName: tapeName,
+		typeStr:  typeStr,
+		tapeType: tapeTypeStr,
+	})
+	return nil
+}
+
+func (g *typeGenerator) Render() string {
 	g.addImport("github.com/nazarifard/fastape")
 	if g.needsErrors {
 		g.addImport("errors")
@@ -60,23 +87,31 @@ func (g *typeGenerator) Generate(t types.Type, tapeName, typeStrOverride string)
 		out.WriteString("import \"" + path + "\"\n")
 	}
 
-	if g.isUnnamed(t) || g.isFixedSize(t) {
-		out.WriteString("\n" + "type " + tapeName + " = " + tapeTypeStr)
+	for _, target := range g.targets {
+		if target.tapeType == target.tapeName {
+			continue
+		}
+		out.WriteString("\n" + "type " + target.tapeName + " = " + target.tapeType)
 	}
 
-	compileCheck := `
-//check compileType error
-var _ = func() {
-	 var tape %s
-	 var v %s
-	 _=tape.Sizeof(v)
-	 _,_=tape.Roll(v, nil)
-	 _,_=tape.Unroll(nil, &v)	
+	if g.code.Len() > 0 {
+		out.WriteString("\n" + g.code.String())
+	}
+
+	if len(g.targets) > 0 {
+		out.WriteString("\n// check compileType error\n")
+		for _, target := range g.targets {
+			out.WriteString(fmt.Sprintf(`var _ = func() {
+	var tape %s
+	var v %s
+	_ = tape.Sizeof(v)
+	_, _ = tape.Roll(v, nil)
+	_, _ = tape.Unroll(nil, &v)
 }
-`
-	out.WriteString(fmt.Sprintf(compileCheck, tapeName, typeStr))
-	out.WriteString("\n" + g.code.String())
-	return out.String(), nil
+`, target.tapeName, target.typeStr))
+		}
+	}
+	return out.String()
 }
 
 func (g *typeGenerator) addImport(path string) {
@@ -241,16 +276,20 @@ func (g *typeGenerator) tape(t types.Type) (result string, err error) {
 		}
 	case *types.Struct:
 		structName := g.typeName(t)
+		structType := structName
 		if structName == "" {
 			g.structCounter++
 			structName = fmt.Sprintf("struct_%04d", g.structCounter)
 			g.code.WriteString("\ntype " + structName + " = " + g.structTypeString(tt) + "\n")
+			structType = structName
+		} else {
+			structType = g.typeString(t)
 		}
 		tapeName := structName + "Tape"
 
-		sizeofCode := fmt.Sprintf("\nfunc (t %s) Sizeof(v %s) int {\n size := 0", tapeName, structName)
-		rollCode := fmt.Sprintf("\nfunc (t %s) Roll(v %s, bs []byte) (n int, err error) {\tvar m int", tapeName, structName)
-		unrollCode := fmt.Sprintf("\nfunc (t %s) Unroll(bs []byte, v *%s) (n int, err error) { var m int", tapeName, structName)
+		sizeofCode := fmt.Sprintf("\nfunc (t %s) Sizeof(v %s) int {\n size := 0", tapeName, structType)
+		rollCode := fmt.Sprintf("\nfunc (t %s) Roll(v %s, bs []byte) (n int, err error) {\tvar m int", tapeName, structType)
+		unrollCode := fmt.Sprintf("\nfunc (t %s) Unroll(bs []byte, v *%s) (n int, err error) { var m int", tapeName, structType)
 
 		var tapeFields []string
 		for i := 0; i < tt.NumFields(); i++ {
@@ -290,9 +329,6 @@ func (g *typeGenerator) tape(t types.Type) (result string, err error) {
 			return "", tapeErr
 		}
 		arrayType := g.typeString(tt)
-		if g.typeName(t) != "" {
-			arrayType = g.typeString(t)
-		}
 		return fmt.Sprintf("Array_%d[%s, %s, %s]", n, arrayType, g.typeString(tt.Elem()), elemTape), nil
 	case *types.Slice:
 		elemTape, tapeErr := g.tape(tt.Elem())

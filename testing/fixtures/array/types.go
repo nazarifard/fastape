@@ -8,6 +8,8 @@ type Inner struct {
 	Note string
 }
 
+// fastape:generate
+
 type ArraySample = [2]Inner
 
 func sampleArray() ArraySample {

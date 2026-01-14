@@ -2,6 +2,8 @@ package outer
 
 import "github.com/nazarifard/fastape/testing/fixtures/nested/inner"
 
+// fastape:generate
+
 type Outer struct {
 	Primary inner.Inner
 	Alias   inner.AliasInner

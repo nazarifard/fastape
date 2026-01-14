@@ -5,10 +5,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"testing"
-
-	"github.com/nazarifard/fastape/internal/gencode"
 )
 
 func TestCmdSampleGoldens(t *testing.T) {
@@ -18,61 +15,29 @@ func TestCmdSampleGoldens(t *testing.T) {
 	baseDir := filepath.Join(repoRoot, "testing")
 	basicDir := filepath.Join(baseDir, "fixtures", "basic")
 	outerDir := filepath.Join(baseDir, "fixtures", "nested", "outer")
+	fastapeRoot := repoRoot
 	cases := []struct {
-		name     string
-		dir      string
-		goFile   string
-		typeName string
-		golden   string
+		name   string
+		dir    string
+		golden string
 	}{
 		{
-			name:     "basic_edge",
-			dir:      basicDir,
-			goFile:   "types.go",
-			typeName: "Edge",
-			golden:   "basic_edge.golden",
+			name:   "basic",
+			dir:    basicDir,
+			golden: "basic.golden",
 		},
 		{
-			name:     "basic_fixed",
-			dir:      basicDir,
-			goFile:   "types.go",
-			typeName: "Fixed",
-			golden:   "basic_fixed.golden",
-		},
-		{
-			name:     "basic_alias_slice",
-			dir:      basicDir,
-			goFile:   "types.go",
-			typeName: "AliasSlice",
-			golden:   "basic_alias_slice.golden",
-		},
-		{
-			name:     "basic_named_slice",
-			dir:      basicDir,
-			goFile:   "types.go",
-			typeName: "NamedSlice",
-			golden:   "basic_named_slice.golden",
-		},
-		{
-			name:     "basic_alias_array",
-			dir:      basicDir,
-			goFile:   "types.go",
-			typeName: "AliasArray",
-			golden:   "basic_alias_array.golden",
-		},
-		{
-			name:     "nested_outer",
-			dir:      outerDir,
-			goFile:   "outer.go",
-			typeName: "Outer",
-			golden:   "nested_outer.golden",
+			name:   "nested_outer",
+			dir:    outerDir,
+			golden: "nested_outer.golden",
 		},
 	}
 
 	update := os.Getenv("UPDATE_GOLDEN") != ""
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := generateTapeSource(t, tc.dir, tc.goFile, tc.typeName)
+			generatePackageFiles(t, fastapeRoot, tc.dir, "")
+			got := readGeneratedFile(t, tc.dir, "fastape_gen.go")
 			goldenPath := filepath.Join(baseDir, "testdata", tc.golden)
 
 			if update {
@@ -96,40 +61,29 @@ func TestCmdSampleGoldens(t *testing.T) {
 func TestCmdSampleRoundTripGenerated(t *testing.T) {
 	repoRoot := repoRoot(t)
 	baseDir := filepath.Join(repoRoot, "testing", "fixtures")
+	fastapeRoot := repoRoot
 
 	cases := []struct {
-		name     string
-		dir      string
-		goFile   string
-		typeName string
+		name string
+		dir  string
 	}{
 		{
-			name:     "roundtrip",
-			dir:      filepath.Join(baseDir, "roundtrip"),
-			goFile:   "types.go",
-			typeName: "RoundTrip",
+			name: "roundtrip",
+			dir:  filepath.Join(baseDir, "roundtrip"),
 		},
 		{
-			name:     "array",
-			dir:      filepath.Join(baseDir, "array"),
-			goFile:   "types.go",
-			typeName: "ArraySample",
+			name: "array",
+			dir:  filepath.Join(baseDir, "array"),
 		},
 		{
-			name:     "nested",
-			dir:      filepath.Join(baseDir, "nested_rt", "outer"),
-			goFile:   "outer.go",
-			typeName: "Outer",
+			name: "nested",
+			dir:  filepath.Join(baseDir, "nested_rt", "outer"),
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			genPath := generateTapeFile(t, tc.dir, tc.goFile, tc.typeName)
-			t.Cleanup(func() {
-				_ = os.Remove(genPath)
-			})
-
+			generatePackageFiles(t, fastapeRoot, tc.dir, "")
 			cmd := exec.Command("go", "test", "-tags", "generated")
 			cmd.Dir = tc.dir
 			cmd.Env = os.Environ()
@@ -141,41 +95,65 @@ func TestCmdSampleRoundTripGenerated(t *testing.T) {
 	}
 }
 
-func generateTapeSource(t *testing.T, dir, goFile, typeName string) []byte {
+func generatePackageFiles(t *testing.T, fastapeRoot, dir, tags string) []string {
 	t.Helper()
 
-	filePath := filepath.Join(dir, goFile)
-	code, err := gencode.GenCodeFromFile(filePath, typeName, typeName+"Tape")
+	removeFiles([]string{
+		filepath.Join(dir, "fastape_gen.go"),
+		filepath.Join(dir, "fastape_gen_test.go"),
+	})
+
+	runFastape(t, fastapeRoot, dir, tags)
+
+	paths := []string{
+		filepath.Join(dir, "fastape_gen.go"),
+		filepath.Join(dir, "fastape_gen_test.go"),
+	}
+	var existing []string
+	for _, path := range paths {
+		if _, err := os.Stat(path); err == nil {
+			existing = append(existing, path)
+		}
+	}
+	if len(existing) == 0 {
+		t.Fatalf("generated files missing in %s", dir)
+	}
+	return existing
+}
+
+func runFastape(t *testing.T, fastapeRoot, dir, tags string) {
+	t.Helper()
+
+	args := []string{"run", "./cmd/fastape"}
+	if tags != "" {
+		args = append(args, "-tags", tags)
+	}
+	args = append(args, dir)
+
+	cmd := exec.Command("go", args...)
+	cmd.Dir = fastapeRoot
+	cmd.Env = os.Environ()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("generate code: %v", err)
+		t.Fatalf("fastape failed: %v\n%s", err, string(output))
 	}
-	return formatCode(t, []byte(code))
 }
 
-func generateTapeFile(t *testing.T, dir, goFile, typeName string) string {
+func readGeneratedFile(t *testing.T, dir, name string) []byte {
 	t.Helper()
 
-	genName := generatedFileName(typeName, goFile)
-	genPath := filepath.Join(dir, genName)
-	_ = os.Remove(genPath)
-
-	code := generateTapeSource(t, dir, goFile, typeName)
-	if err := os.WriteFile(genPath, code, 0644); err != nil {
-		t.Fatalf("write generated: %v", err)
+	path := filepath.Join(dir, name)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read generated: %v", err)
 	}
-
-	if _, err := os.Stat(genPath); err != nil {
-		t.Fatalf("generated file missing: %v", err)
-	}
-	return genPath
+	return data
 }
 
-func generatedFileName(typeName, goFile string) string {
-	name := strings.ToLower(typeName) + "_tape__gen"
-	if strings.HasSuffix(goFile, "_test.go") {
-		return name + "_test.go"
+func removeFiles(paths []string) {
+	for _, path := range paths {
+		_ = os.Remove(path)
 	}
-	return name + ".go"
 }
 
 func repoRoot(t *testing.T) string {

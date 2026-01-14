@@ -6,6 +6,8 @@ import (
 	"github.com/nazarifard/fastape/testing/fixtures/nested_rt/inner"
 )
 
+// fastape:generate
+
 type Outer struct {
 	Primary inner.Payload
 	Alias   inner.Payload

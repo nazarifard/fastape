@@ -22,6 +22,8 @@ type Embedded struct {
 	Enabled bool
 }
 
+// fastape:generate
+
 type RoundTrip struct {
 	Flag       bool
 	Count      int

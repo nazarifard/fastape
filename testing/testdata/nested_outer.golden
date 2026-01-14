@@ -6,23 +6,14 @@ import "github.com/nazarifard/fastape"
 import "github.com/nazarifard/fastape/testing/fixtures/nested/inner"
 import "time"
 
-// check compileType error
-var _ = func() {
-	var tape OuterTape
-	var v Outer
-	_ = tape.Sizeof(v)
-	_, _ = tape.Roll(v, nil)
-	_, _ = tape.Unroll(nil, &v)
-}
-
-func (t InnerTape) Sizeof(v Inner) int {
+func (t InnerTape) Sizeof(v inner.Inner) int {
 	size := 0
 	size += t.aID.Sizeof(v.ID)
 	size += t.aWhen.Sizeof(v.When)
 	return size
 }
 
-func (t InnerTape) Roll(v Inner, bs []byte) (n int, err error) {
+func (t InnerTape) Roll(v inner.Inner, bs []byte) (n int, err error) {
 	var m int
 	m, err = t.aID.Roll(v.ID, bs[n:])
 	if err != nil {
@@ -37,7 +28,7 @@ func (t InnerTape) Roll(v Inner, bs []byte) (n int, err error) {
 	return
 }
 
-func (t InnerTape) Unroll(bs []byte, v *Inner) (n int, err error) {
+func (t InnerTape) Unroll(bs []byte, v *inner.Inner) (n int, err error) {
 	var m int
 	m, err = t.aID.Unroll(bs[n:], &v.ID)
 	if err != nil {
@@ -168,4 +159,13 @@ type OuterTape struct {
 	aKeys    fastape.SliceTape[inner.Key, fastape.NamedTape[inner.Key, string, fastape.StringTape]]
 	aLookup  fastape.MapTape[inner.Key, *inner.Inner, fastape.NamedTape[inner.Key, string, fastape.StringTape], fastape.PtrTape[inner.Inner, InnerTape]]
 	aItems   Array_2[[2]inner.Inner, inner.Inner, InnerTape]
+}
+
+// check compileType error
+var _ = func() {
+	var tape OuterTape
+	var v Outer
+	_ = tape.Sizeof(v)
+	_, _ = tape.Roll(v, nil)
+	_, _ = tape.Unroll(nil, &v)
 }

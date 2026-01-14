@@ -32,9 +32,12 @@ import "github.com/nazarifard/fastape"
 import "time"
 type MyString string
 type MyTime time.Time
-type Info = []map[MyString][3]struct {*MyTime;int}
 
-//go:generate fastape Info
+// fastape:generate
+
+type Info = []map[MyString][3]struct{ *MyTime; int }
+
+//go:generate fastape .
 var a,b Info
 var tape InfoTape
 n:=tape.Sizeof(a)

@@ -5,13 +5,94 @@ import "errors"
 import "github.com/nazarifard/fastape"
 import "time"
 
-// check compileType error
-var _ = func() {
-	var tape EdgeTape
-	var v Edge
-	_ = tape.Sizeof(v)
-	_, _ = tape.Roll(v, nil)
-	_, _ = tape.Unroll(nil, &v)
+type AliasSliceTape = fastape.SliceTape[MyString, fastape.NamedTape[MyString, string, fastape.StringTape]]
+type NamedSliceTape = fastape.NamedTape[NamedSlice, []MyString, fastape.SliceTape[MyString, fastape.NamedTape[MyString, string, fastape.StringTape]]]
+type AliasArrayTape = Array_2[[2]string, string, fastape.StringTape]
+type NamedArrayTape = fastape.NamedTape[NamedArray, [2]string, Array_2[[2]string, string, fastape.StringTape]]
+type FixedTape = fastape.UnitTape[Fixed]
+
+func (t simpleStructTape) Sizeof(v simpleStruct) int {
+	size := 0
+	size += t.aName.Sizeof(v.Name)
+	size += t.aAge.Sizeof(v.Age)
+	return size
+}
+
+func (t simpleStructTape) Roll(v simpleStruct, bs []byte) (n int, err error) {
+	var m int
+	m, err = t.aName.Roll(v.Name, bs[n:])
+	if err != nil {
+		return
+	}
+	n += m
+	m, err = t.aAge.Roll(v.Age, bs[n:])
+	if err != nil {
+		return
+	}
+	n += m
+	return
+}
+
+func (t simpleStructTape) Unroll(bs []byte, v *simpleStruct) (n int, err error) {
+	var m int
+	m, err = t.aName.Unroll(bs[n:], &v.Name)
+	if err != nil {
+		return
+	}
+	n += m
+	m, err = t.aAge.Unroll(bs[n:], &v.Age)
+	if err != nil {
+		return
+	}
+	n += m
+	return
+}
+
+type simpleStructTape struct {
+	aName fastape.StringTape
+	aAge  fastape.UnitTape[int]
+}
+
+func (t namedStructTape) Sizeof(v namedStruct) int {
+	size := 0
+	size += t.aLabel.Sizeof(v.Label)
+	size += t.aWhen.Sizeof(v.When)
+	return size
+}
+
+func (t namedStructTape) Roll(v namedStruct, bs []byte) (n int, err error) {
+	var m int
+	m, err = t.aLabel.Roll(v.Label, bs[n:])
+	if err != nil {
+		return
+	}
+	n += m
+	m, err = t.aWhen.Roll(v.When, bs[n:])
+	if err != nil {
+		return
+	}
+	n += m
+	return
+}
+
+func (t namedStructTape) Unroll(bs []byte, v *namedStruct) (n int, err error) {
+	var m int
+	m, err = t.aLabel.Unroll(bs[n:], &v.Label)
+	if err != nil {
+		return
+	}
+	n += m
+	m, err = t.aWhen.Unroll(bs[n:], &v.When)
+	if err != nil {
+		return
+	}
+	n += m
+	return
+}
+
+type namedStructTape struct {
+	aLabel fastape.NamedTape[MyString, string, fastape.StringTape]
+	aWhen  fastape.NamedTape[MyTime, time.Time, fastape.TimeTape]
 }
 
 func (t innerTape) Sizeof(v inner) int {
@@ -89,6 +170,102 @@ func (array Array_2[A, V, VT]) Unroll(bs []byte, p *A) (n int, err error) {
 		n += m
 	}
 	return n, nil
+}
+
+func (t complexStructTape) Sizeof(v complexStruct) int {
+	size := 0
+	size += t.aPtr.Sizeof(v.Ptr)
+	size += t.aTags.Sizeof(v.Tags)
+	size += t.aLookup.Sizeof(v.Lookup)
+	size += t.aCodes.Sizeof(v.Codes)
+	return size
+}
+
+func (t complexStructTape) Roll(v complexStruct, bs []byte) (n int, err error) {
+	var m int
+	m, err = t.aPtr.Roll(v.Ptr, bs[n:])
+	if err != nil {
+		return
+	}
+	n += m
+	m, err = t.aTags.Roll(v.Tags, bs[n:])
+	if err != nil {
+		return
+	}
+	n += m
+	m, err = t.aLookup.Roll(v.Lookup, bs[n:])
+	if err != nil {
+		return
+	}
+	n += m
+	m, err = t.aCodes.Roll(v.Codes, bs[n:])
+	if err != nil {
+		return
+	}
+	n += m
+	return
+}
+
+func (t complexStructTape) Unroll(bs []byte, v *complexStruct) (n int, err error) {
+	var m int
+	m, err = t.aPtr.Unroll(bs[n:], &v.Ptr)
+	if err != nil {
+		return
+	}
+	n += m
+	m, err = t.aTags.Unroll(bs[n:], &v.Tags)
+	if err != nil {
+		return
+	}
+	n += m
+	m, err = t.aLookup.Unroll(bs[n:], &v.Lookup)
+	if err != nil {
+		return
+	}
+	n += m
+	m, err = t.aCodes.Unroll(bs[n:], &v.Codes)
+	if err != nil {
+		return
+	}
+	n += m
+	return
+}
+
+type complexStructTape struct {
+	aPtr    fastape.PtrTape[inner, innerTape]
+	aTags   fastape.SliceTape[MyString, fastape.NamedTape[MyString, string, fastape.StringTape]]
+	aLookup fastape.MapTape[MyString, *inner, fastape.NamedTape[MyString, string, fastape.StringTape], fastape.PtrTape[inner, innerTape]]
+	aCodes  Array_2[[2]string, string, fastape.StringTape]
+}
+
+func (t timeStructTape) Sizeof(v timeStruct) int {
+	size := 0
+	size += t.aAt.Sizeof(v.At)
+	return size
+}
+
+func (t timeStructTape) Roll(v timeStruct, bs []byte) (n int, err error) {
+	var m int
+	m, err = t.aAt.Roll(v.At, bs[n:])
+	if err != nil {
+		return
+	}
+	n += m
+	return
+}
+
+func (t timeStructTape) Unroll(bs []byte, v *timeStruct) (n int, err error) {
+	var m int
+	m, err = t.aAt.Unroll(bs[n:], &v.At)
+	if err != nil {
+		return
+	}
+	n += m
+	return
+}
+
+type timeStructTape struct {
+	aAt fastape.NamedTape[time.Time, time.Time, fastape.TimeTape]
 }
 
 type struct_0001 = struct {
@@ -292,9 +469,81 @@ type EdgeTape struct {
 	aAliasPtr   fastape.PtrTape[inner, innerTape]
 	aNamedPtr   fastape.NamedTape[NamedPtr, *inner, fastape.PtrTape[inner, innerTape]]
 	aAliasArray Array_2[[2]string, string, fastape.StringTape]
-	aNamedArray fastape.NamedTape[NamedArray, [2]string, Array_2[NamedArray, string, fastape.StringTape]]
+	aNamedArray fastape.NamedTape[NamedArray, [2]string, Array_2[[2]string, string, fastape.StringTape]]
 	aWhen       fastape.NamedTape[time.Time, time.Time, fastape.TimeTape]
 	aWhenAlias  fastape.NamedTape[MyTime, time.Time, fastape.TimeTape]
 	aInline     struct_0001Tape
 	aEmbedded   fastape.UnitTape[Embedded]
+}
+
+// check compileType error
+var _ = func() {
+	var tape simpleStructTape
+	var v simpleStruct
+	_ = tape.Sizeof(v)
+	_, _ = tape.Roll(v, nil)
+	_, _ = tape.Unroll(nil, &v)
+}
+var _ = func() {
+	var tape namedStructTape
+	var v namedStruct
+	_ = tape.Sizeof(v)
+	_, _ = tape.Roll(v, nil)
+	_, _ = tape.Unroll(nil, &v)
+}
+var _ = func() {
+	var tape complexStructTape
+	var v complexStruct
+	_ = tape.Sizeof(v)
+	_, _ = tape.Roll(v, nil)
+	_, _ = tape.Unroll(nil, &v)
+}
+var _ = func() {
+	var tape timeStructTape
+	var v timeStruct
+	_ = tape.Sizeof(v)
+	_, _ = tape.Roll(v, nil)
+	_, _ = tape.Unroll(nil, &v)
+}
+var _ = func() {
+	var tape AliasSliceTape
+	var v AliasSlice
+	_ = tape.Sizeof(v)
+	_, _ = tape.Roll(v, nil)
+	_, _ = tape.Unroll(nil, &v)
+}
+var _ = func() {
+	var tape NamedSliceTape
+	var v NamedSlice
+	_ = tape.Sizeof(v)
+	_, _ = tape.Roll(v, nil)
+	_, _ = tape.Unroll(nil, &v)
+}
+var _ = func() {
+	var tape AliasArrayTape
+	var v AliasArray
+	_ = tape.Sizeof(v)
+	_, _ = tape.Roll(v, nil)
+	_, _ = tape.Unroll(nil, &v)
+}
+var _ = func() {
+	var tape NamedArrayTape
+	var v NamedArray
+	_ = tape.Sizeof(v)
+	_, _ = tape.Roll(v, nil)
+	_, _ = tape.Unroll(nil, &v)
+}
+var _ = func() {
+	var tape FixedTape
+	var v Fixed
+	_ = tape.Sizeof(v)
+	_, _ = tape.Roll(v, nil)
+	_, _ = tape.Unroll(nil, &v)
+}
+var _ = func() {
+	var tape EdgeTape
+	var v Edge
+	_ = tape.Sizeof(v)
+	_, _ = tape.Roll(v, nil)
+	_, _ = tape.Unroll(nil, &v)
 }
