@@ -9,6 +9,7 @@ type UnitTape[V any] struct {
 }
 
 func (_ UnitTape[V]) Roll(v V, bs []byte) (n int, err error) {
+	// TODO: consider providing an alternative tape with defined endianness/layout for portable file formats; UnitTape writes Go's in-memory representation.
 	n = int(unsafe_mod.Sizeof(v))
 	if len(bs) < n {
 		return 0, ErrNoSpaceLeft
